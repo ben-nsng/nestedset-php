@@ -1,11 +1,44 @@
 <?php
+$db = new database('mysql', 'localhost', 'tree', 'tree', 'tree');
+$tree = new tree($db);
+
+if(isset($_POST['action'])) {
+	switch($_POST['action']) {
+		case 'create_node':
+			echo $tree->add_node('new_node');
+		break;
+		case 'select_all':
+			echo json_encode($tree->select_all()->result());
+		break;
+		case 'move_node':
+			$node_data = json_decode($_POST['node_data']);
+			//move the new node after the prev one
+			if($node_data->prev != 'undefined') {
+				$tree->add_after($node_data->new, $node_data->prev);
+			}
+			//move the new node before the next one
+			else if($node_data->next != 'undefined') {
+				$tree->add_before($node_data->new, $node_data->next);
+			}
+			else if($node_data->parent != 'undefined') {
+				$tree->add_child($node_data->new, $node_data->parent);
+			}
+		break;
+		case 'remove_node':
+			if(isset($_POST['id']))
+				$tree->delete_node($_POST['id']);
+		break;
+	}
+}
 
 class database {
 
 	private $dh;
+	private $trans;
 
-	public function __construct($host, $db, $user, $pass) {
-		$this->dh = new PDO('mysql:host=' . $host . ';dbname=' . $db, $user, $pass);
+	public function __construct($driver, $host, $db, $user, $pass) {
+		$this->dh = new PDO($driver . ':host=' . $host . ';dbname=' . $db, $user, $pass);
+		$this->trans = false;
 	}
 
 	public function quote($str) {
@@ -17,10 +50,13 @@ class database {
 	}
 
 	public function trans_start() {
+		if($this->trans) return;
+		$this->trans = true;
 		$this->dh->beginTransaction();
 	}
 
 	public function trans_end() {
+		$this->trans = false;
 		$this->dh->commit();
 	}
 
@@ -102,12 +138,19 @@ class tree {
 	}
 
 	// add node
-	public function add_node($label, $node_parent_id = '') {
+	public function add_node($label = '', $node_parent_id = '') {
 
 		//if no parent define, add to root node
 		if($node_parent_id == '') {
 			$sql = 'SELECT id FROM tree WHERE lvl=0';
 			$query = $this->database->execute($sql);
+
+			// check if root node exists
+			if($query->num_rows() == 0) {
+				$this->add_root();
+				return $this->add_node($label, $node_parent_id);
+			}
+
 			$result = $query->result();
 			$node_parent_id = $result[0]->id;
 		}
@@ -146,6 +189,7 @@ class tree {
 	
 		$this->database->trans_end();
 
+		return $this->database->last_insert_id();
 	}
 
 	// select node
@@ -153,13 +197,13 @@ class tree {
 		$sql = 'SELECT id, label, lvl, parent_id,
 		FORMAT((((rht - lft) -1) / 2),0) AS cnt_children, 
 		CASE WHEN rht - lft > 1 THEN 1 ELSE 0 END AS is_branch
-		FROM tree';
+		FROM tree ORDER BY lft';
 		return $this->database->execute($sql);
 	}
 
 	// add child
 	// ad node 1 into node 2
-	public function add_child($label, $node_id_1, $node_id_2) {
+	public function add_child($node_id_1, $node_id_2) {
 		if($node_id_1 == $node_id_2) {
 			return false;	//same node
 		}
@@ -231,18 +275,17 @@ class tree {
 		// update parent
 		$sql = 'UPDATE tree
 				SET
-					label = ?,
 					parent_id = ?
 				WHERE
 					id = ?';
-		$this->database->execute($sql, array($label, $node2->id, $node1->id));
+		$this->database->execute($sql, array($node2->id, $node1->id));
 
 		$this->database->trans_end();
 	}
 
 	// add before
 	// add node 1 before node 2
-	public function add_before($label, $node_id_1, $node_id_2) {
+	public function add_before($node_id_1, $node_id_2) {
 		if($node_id_1 == $node_id_2) {
 			return false;	//same node
 		}
@@ -270,8 +313,8 @@ class tree {
 
 		// if not in same level, put it in same level
 		if($node1->lvl != $node2->lvl || $node1->parent_id != $node2->parent_id) {
-			$this->add_child($label, $node_id_1, $node2->parent_id);
-			return $this->add_before($label, $node_id_1, $node_id_2);
+			$this->add_child($node_id_1, $node2->parent_id);
+			return $this->add_before($node_id_1, $node_id_2);
 		}
 
 		// same level, put node 1 before node 2
@@ -326,7 +369,7 @@ class tree {
 
 	// add after
 	// add node 1 after node 2
-	public function add_after($label, $node_id_1, $node_id_2) {
+	public function add_after($node_id_1, $node_id_2) {
 
 		if($node_id_1 == $node_id_2) {
 			return false;	//same node
@@ -355,8 +398,8 @@ class tree {
 
 		// if not in same level, put it in same level
 		if($node1->lvl != $node2->lvl || $node1->parent_id != $node2->parent_id) {
-			$this->add_child($label, $node_id_1, $node2->parent_id);
-			return $this->add_after($label, $node_id_1, $node_id_2);
+			$this->add_child($node_id_1, $node2->parent_id);
+			return $this->add_after($node_id_1, $node_id_2);
 		}
 
 		// same level, put node 1 before node 2
@@ -434,11 +477,17 @@ class tree {
 
 
 		// delete nodes
+		/*
 		$sql = 'DELETE *
 			  FROM tree 			  
 			 WHERE lft >= ?
 			   AND rht <= ?';
 		$this->database->execute($sql, array($lft, $rht));
+		*/
+		$sql = 'DELETE 
+			  FROM tree 			  
+			 WHERE parent_id IS NULL AND lvl <> 0';
+		$this->database->execute($sql);
 
 		$node_tmp = $rht - $lft + 1;
 
@@ -453,6 +502,3 @@ class tree {
 	}
 
 }
-
-$db = new database('localhost', 'tree', 'tree', 'tree');
-$tree = new tree($db);
