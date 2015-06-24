@@ -1,0 +1,12 @@
+{
+    "name": "nsng/mysql-nested-set",
+    "description": "A PDO plugin implementing the nested set pattern",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Ben Ng",
+            "email": "ben.nsng@gmail.com"
+        }
+    ],
+    "require": {}
+}
