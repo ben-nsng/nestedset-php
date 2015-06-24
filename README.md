@@ -1,13 +1,11 @@
 # nestedset-php
 
-Using Nested Sets Pattern to Model Tree Structure in PHP
+If you are not using any PHP framework and need to manage tree structure data, here is the library using Nested Sets Pattern to Model Tree Structure in PHP
 
 ### Installation
 
-To install the SDK, you will need to be using [Composer](http://getcomposer.org/) 
-in your project. 
-If you aren't using Composer yet, it's really simple! Here's how to install 
-composer and nestedset-php.
+To install the library, you can simply clone the library and include the file pdo.nestedset.php. If you are using [Composer](http://getcomposer.org/) 
+in your project, it is really simple to install nestedset-php.
 
 ```PHP
 # Install Composer
