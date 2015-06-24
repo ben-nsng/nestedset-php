@@ -15,22 +15,22 @@
 
 namespace {
 
-	Class PDONestedSet {
+	Class NestedSet {
 
 	    /**
-	     * PDO object connects to database.
+	     * Database object
 	     * @type resource
 	     */
 		private $database;
 
 	    /**
-	     * PDO object transaction.
+	     * Table name
 	     * @type string
 	     */
 		private $table = 'tree';
 
 	    /**
-	     * Constructor
+	     * Constructor, defined PDO object
 	     * @param object $dbh
 	     */
 		public function __construct(PDO $dbh) {
@@ -38,16 +38,15 @@ namespace {
 		}
 
 	    /**
-	     * Constructor
-	     * @param object $dbh
+	     * Change the current table to manage tree structure
+	     * @param object $table table name
 	     */
 		public function changeTable($table) {
 			$this->table = $table;
 		}
 
 	    /**
-	     * Constructor
-	     * @param object $dbh
+	     * Add root to the table (for initialization only)
 	     */
 		public function addRoot() {
 			$sql = 'SELECT COUNT(1) AS row_count FROM ' . $this->table . ' WHERE lvl=0;';
@@ -65,8 +64,10 @@ namespace {
 		}
 
 	    /**
-	     * Constructor
-	     * @param object $dbh
+	     * Add new node to the tree structure
+	     * @param string $label node name
+	     * @param int $node_parent_id parent node id
+	     * @return int new node id
 	     */
 		public function addNode($label = '', $node_parent_id = '') {
 
@@ -123,8 +124,7 @@ namespace {
 		}
 
 	    /**
-	     * Constructor
-	     * @param object $dbh
+	     * Select all nodes from the table
 	     */
 		public function selectAll() {
 			$sql = 'SELECT id, label, lvl, parent_id,
@@ -135,11 +135,10 @@ namespace {
 		}
 
 	    /**
-	     * Constructor
-	     * @param object $dbh
+	     * Move existing node into node 2
+	     * @param int $node_id_1 id of node 1
+	     * @param int $node_id_2 id of node 2
 	     */
-		// add child
-		// ad node 1 into node 2
 		public function addChild($node_id_1, $node_id_2) {
 			if($node_id_1 == $node_id_2) {
 				return false;	//same node
@@ -221,11 +220,10 @@ namespace {
 		}
 
 	    /**
-	     * Constructor
-	     * @param object $dbh
+	     * Move existing node before node 2
+	     * @param int $node_id_1 id of node 1
+	     * @param int $node_id_2 id of node 2
 	     */
-		// add before
-		// add node 1 before node 2
 		public function addBefore($node_id_1, $node_id_2) {
 			if($node_id_1 == $node_id_2) {
 				return false;	//same node
@@ -309,11 +307,10 @@ namespace {
 		}
 
 	    /**
-	     * Constructor
-	     * @param object $dbh
+	     * Move existing node after node 2
+	     * @param int $node_id_1 id of node 1
+	     * @param int $node_id_2 id of node 2
 	     */
-		// add after
-		// add node 1 after node 2
 		public function addAfter($node_id_1, $node_id_2) {
 
 			if($node_id_1 == $node_id_2) {
@@ -398,10 +395,9 @@ namespace {
 		}
 
 	    /**
-	     * Constructor
-	     * @param object $dbh
+	     * Delete existing node
+	     * @param int $node_id id of node
 	     */
-		// delete node
 		public function deleteNode($node_id) {
 
 			$sql = 'SELECT id, lft, rht, lvl FROM ' . $this->table . ' WHERE id=?';

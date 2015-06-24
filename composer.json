@@ -1,5 +1,5 @@
 {
-    "name": "nsng/mysql-nested-set",
+    "name": "ben-nsng/nestedset-php",
     "description": "A PDO plugin implementing the nested set pattern",
     "license": "MIT",
     "authors": [

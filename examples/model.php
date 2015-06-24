@@ -1,9 +1,8 @@
 <?php
 
-ini_set('display_errors', '1');
 include('../pdo.nestedset.php');
 
-$treeModel = new PDONestedSet(
+$treeModel = new NestedSet(
 				new PDO('mysql:host=localhost;dbname=tree', 'tree', 'tree')
 				);
 
